@@ -5,6 +5,7 @@ services:
     container_name: wg-easy-sentinel
     environment:
       - WG_CONTAINER_NAME=wg-easy
+      - VPN_NAME=wg-vpn
       - TIMEOUT_THRESHOLD=120
       - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN}
       - PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY}

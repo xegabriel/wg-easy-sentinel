@@ -21,6 +21,7 @@ RUN echo "MAILTO=\"\"" > /etc/crontabs/root && \
 # Optional: Define default ENV vars here.
 # These will be captured by entrypoint.sh if not overridden by 'docker run -e'.
 # ENV WG_CONTAINER_NAME=wg-easy
+# ENV VPN_NAME=wg-vpn
 # ENV TIMEOUT_THRESHOLD=120
 # ENV PUSHOVER_APP_TOKEN="" # Leave sensitive vars empty
 # ENV PUSHOVER_USER_KEY=""

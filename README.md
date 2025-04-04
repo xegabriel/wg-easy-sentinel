@@ -35,6 +35,7 @@ The following environment variables can be adjusted in the `docker-compose.yml` 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `WG_CONTAINER_NAME` | Name of your WireGuard Easy container | `wg-easy` |
+| `VPN_NAME` | VPN Identifier included in the notification title | `wg-vpn` |
 | `TIMEOUT_THRESHOLD` | Maximum seconds since last handshake for a peer to be considered connected or disconnected | `120` |
 | `PUSHOVER_APP_TOKEN` | Your Pushover application token | Required for notifications |
 | `PUSHOVER_USER_KEY` | Your Pushover user key | Required for notifications |

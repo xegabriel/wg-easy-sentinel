@@ -6,6 +6,7 @@ set -euo pipefail
 
 # --- General Configuration ---
 CONTAINER_NAME="${WG_CONTAINER_NAME:-wg-easy}" # Default to wg-easy if not set
+VPN_NAME="${VPN_NAME:-wg-vpn}" # Default to wg0 if not set
 # TIMEOUT_THRESHOLD: Seconds of inactivity before considering a peer disconnected.
 # This now determines disconnection based on the *last recorded handshake* across script runs.
 TIMEOUT_THRESHOLD="${TIMEOUT_THRESHOLD:-120}" # Default to 2 minutes if not set
@@ -220,7 +221,7 @@ if ! flock -n 200; then
 fi
 # Lock acquired, will be released automatically when the script exits (due to exec 200>...)
 
-log "🚀 Performing run ..."
+log "🚀 Performing check ..."
 
 # Check prerequisites
 if ! command -v docker &> /dev/null; then
@@ -240,6 +241,20 @@ fi
 if ! docker container inspect "$CONTAINER_NAME" --format '{{.State.Status}}' 2>/dev/null | grep -q "running"; then
     log "❌ Error: Container $CONTAINER_NAME is not running"
     exit 1
+fi
+
+# Check if the vpn name length exceeds the maximum
+# Get the length of the VPN_NAME variable
+VPN_NAME_LENGTH="${#VPN_NAME}"
+MAX_LENGTH=220 # Pushover supports up to 250 characters, but we leave some space for the message
+
+if [ "$VPN_NAME_LENGTH" -gt "$MAX_LENGTH" ]; then
+  # Trim the VPN_NAME variable to the maximum length
+  VPN_NAME="${VPN_NAME:0:$MAX_LENGTH}"
+
+  # Log a warning message with the warning emoji
+  echo "⚠️ Warning: VPN_NAME was longer than $MAX_LENGTH characters and has been trimmed."
+  echo "ℹ️ Trimmed VPN_NAME: $VPN_NAME"
 fi
 
 # Declare state arrays globally (though load/save manage this too)
@@ -293,7 +308,7 @@ while IFS= read -r line; do
     if [[ -z "${connected_peers[$peer]:-}" ]]; then
       peer_display=$(get_peer_display "$peer")
       log "✅ Peer $peer_display is now connected (Handshake ${time_since_handshake}s ago)."
-      send_notification "🟢 Peer Connected" "👤 Peer $peer_display is now online." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
+      send_notification "🟢 [$VPN_NAME] Peer Connected" "👤 Peer $peer_display is now online." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
       # No need to update connected_peers here, save_state handles the final state
     fi
   fi
@@ -314,7 +329,7 @@ for peer in "${!connected_peers[@]}"; do # Iterate peers connected *last time*
     # current_connected_peers *implies* its handshake is older than the threshold.
     # The more robust check is simply: If it was connected before, and not now, it's disconnected.
     log "✅ Peer $peer_display has disconnected (Last handshake seen ${time_since_last_seen}s ago)."
-    send_notification "🔴 Peer Disconnected" "👤 Peer $peer_display appears to be offline (Last handshake: ${time_since_last_seen}s ago)." || log "⚠️ Warning: Failed to send disconnection notification for $peer_display"
+    send_notification "🔴 [$VPN_NAME] Peer Disconnected" "👤 Peer $peer_display appears to be offline (Last handshake: ${time_since_last_seen}s ago)." || log "⚠️ Warning: Failed to send disconnection notification for $peer_display"
     # The state update happens during save_state; no need to unset here
   fi
 done
