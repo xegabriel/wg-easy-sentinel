@@ -10,7 +10,7 @@ WireGuard Easy Sentinel watches your `wg-easy` container for VPN client connecti
 * 🔄 Persistent state tracking between container restarts
 * 🔒 Prevents duplicate execution with file locking
 * 🐳 Runs in a Docker container alongside your WireGuard Easy instance
-* ⚙️ Configurable timeout thresholds and state storage
+* ⚙️ Configurable timeout thresholds
 
 ## 🚀 Getting started
 
@@ -36,7 +36,6 @@ The following environment variables can be adjusted in the `docker-compose.yml` 
 |----------|-------------|---------|
 | `WG_CONTAINER_NAME` | Name of your WireGuard Easy container | `wg-easy` |
 | `TIMEOUT_THRESHOLD` | Maximum seconds since last handshake for a peer to be considered connected or disconnected | `120` |
-| `STATE_FILE` | Path to store connection status between runs | `/app/data/wg_easy_sentinel.state` |
 | `PUSHOVER_APP_TOKEN` | Your Pushover application token | Required for notifications |
 | `PUSHOVER_USER_KEY` | Your Pushover user key | Required for notifications |
 

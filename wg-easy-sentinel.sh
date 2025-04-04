@@ -11,7 +11,7 @@ CONTAINER_NAME="${WG_CONTAINER_NAME:-wg-easy}" # Default to wg-easy if not set
 TIMEOUT_THRESHOLD="${TIMEOUT_THRESHOLD:-120}" # Default to 2 minutes if not set
 # STATE_FILE: Path to store connection status between runs. Use an absolute path.
 # Ensure the directory exists and the user running cron has write permissions.
-STATE_FILE="${STATE_FILE:-${HOME}/.wg_easy_sentinel_state}" # Example: in user's home directory
+STATE_FILE="/app/data/.wg_easy_sentinel_state" # Example: in user's home directory
 # LOCK_FILE: Path for lock file to prevent concurrent runs. Use an absolute path.
 LOCK_FILE="/tmp/wg_monitor.lock"
 
