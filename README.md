@@ -1,7 +1,7 @@
 # wg-easy-sentinel
 
 ## 📖 Overview
-WireGuard Easy Sentinel watches your `wg-easy` container for VPN client connection/disconnection events and sends push notifications via Pushover. It detects connection state changes by monitoring WireGuard handshake timestamps and maintaining state between runs.
+wg-easy-sentinel watches your `wg-easy` container for VPN client connection/disconnection events and sends push notifications via Pushover. It detects connection state changes by monitoring WireGuard handshake timestamps and maintaining state between runs.
 
 ## ✨ Features
 
@@ -16,13 +16,14 @@ WireGuard Easy Sentinel watches your `wg-easy` container for VPN client connecti
 
 ```shell
 # Define the env vars
-touch .env
+touch .env && cat <<EOF >> .env
 PUSHOVER_APP_TOKEN=your_app_token_here
 PUSHOVER_USER_KEY=your_user_key_here
+EOF
 # Start the service
 docker-compose up -d
 # Check the logs
-docker logs wg-easy-sentinel
+docker logs -f wg-easy-sentinel
 
 # Stop the service
 docker-compose down
@@ -43,7 +44,7 @@ The following environment variables can be adjusted in the `docker-compose.yml` 
 ## 🔍 How It Works
 
 1. **Connection Detection**:
-   - The script runs every minute via [cron](https://github.com/xegabriel/wg-easy-sentinel/blob/main/Dockerfile#L14)
+   - The script runs every minute via [cron](https://github.com/xegabriel/wg-easy-sentinel/blob/main/Dockerfile#L19)
    - It queries the `wg-easy` container for the latest handshake timestamps
    - Peers with handshakes newer than `TIMEOUT_THRESHOLD` are considered connected
 
