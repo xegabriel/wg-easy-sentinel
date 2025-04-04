@@ -30,9 +30,10 @@ get_next_version() {
 
 # Generate a new version tag
 NEW_TAG=$(get_next_version)
+IMAGE_NAME="wg-easy-sentinel"
 
 # Confirm before proceeding
-echo "🚀 New version to be tagged: $NEW_TAG"
+echo "🚀 New version to be tagged: $IMAGE_NAME:$NEW_TAG"
 read -p "Do you want to proceed? (y/N): " CONFIRM
 if [[ "$CONFIRM" != "y" ]]; then
     echo "❌ Aborting."
@@ -46,7 +47,6 @@ git push origin "$NEW_TAG"
 
 # Docker registry and image name
 DOCKER_USER=${DOCKER_USER}
-IMAGE_NAME="dns-monitor"
 
 # Build the Docker image
 echo "🐳 Building Docker image: $DOCKER_USER/$IMAGE_NAME:$NEW_TAG"
