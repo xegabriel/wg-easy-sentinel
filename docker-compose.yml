@@ -1,0 +1,16 @@
+services:
+  wg-easy-sentinel:
+    build: .
+    container_name: wg-easy-sentinel
+    environment:
+      - WG_CONTAINER_NAME=wg-easy
+      - TIMEOUT_THRESHOLD=120
+      - STATE_FILE=/app/data/wg_easy_sentinel.state
+      - PUSHOVER_APP_TOKEN=${PUSHOVER_APP_TOKEN}
+      - PUSHOVER_USER_KEY=${PUSHOVER_USER_KEY}
+    volumes:
+      # Persist state between container runs. Create a "/srv/Appdata/wg-easy-sentinel" folder.
+      - /srv/Appdata/wg-easy-sentinel:/app/data
+      # Allow the container to access the Docker socket.
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
