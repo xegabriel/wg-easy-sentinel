@@ -1,5 +1,6 @@
 services:
   wg-easy-sentinel:
+    image: 1gabriel/wg-easy-sentinel:latest
     build: .
     container_name: wg-easy-sentinel
     environment:
