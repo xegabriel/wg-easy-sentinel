@@ -20,4 +20,4 @@ RUN echo "* * * * * /app/wg-easy-sentinel.sh >> /proc/1/fd/1 2>&1" >> /etc/cront
 # ENV PUSHOVER_APP_TOKEN=your_app_token
 # ENV PUSHOVER_USER_KEY=your_user_key
 
-CMD echo "$(date '+%Y-%m-%d %H:%M:%S %Z') - Container started. Waiting for scheduled tasks..." && crond -f -n
+CMD echo "$(date '+%Y-%m-%d %H:%M:%S %Z') - ⏳ Container started. Waiting for scheduled tasks... ⏳" && crond -f -n
