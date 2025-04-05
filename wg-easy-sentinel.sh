@@ -39,12 +39,12 @@ send_notification() {
 
   # Avoid sending if keys are empty (allows running without Pushover for testing)
   if [[ -z "$PUSHOVER_APP_TOKEN" || -z "$PUSHOVER_USER_KEY" ]]; then
-      log "⚠️ Warning: Pushover credentials not set. 🔕 Skipping notification: '${title}'"
+      log "      ⚠️ Warning: Pushover credentials not set. 🔕 Skipping notification: '${title}'"
       return 0 # Indicate non-fatal issue
   fi
 
   while [[ $attempt -le $max_retries ]]; do
-    log "📤 Attempt $attempt/$max_retries: Sending notification '${title}'..."
+    log "      📤 Attempt $attempt/$max_retries: Sending notification '${title}'..."
     local response status body
     response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
       --form-string "token=${PUSHOVER_APP_TOKEN}" \
@@ -56,18 +56,18 @@ send_notification() {
     body=$(echo "$response" | sed -e 's/HTTPSTATUS\:.*//g')
 
     if [[ "$status" -eq 200 ]]; then
-      log "✅ Notification '${title}' sent successfully on attempt $attempt."
+      log "      ✅ Notification '${title}' sent successfully on attempt $attempt."
       return 0
     fi
 
-    log "❌ Attempt $attempt/$max_retries failed for notification '${title}': HTTP status $status. Response: $body"
+    log "      ❌ Attempt $attempt/$max_retries failed for notification '${title}': HTTP status $status. Response: $body"
     if [[ $attempt -lt $max_retries ]]; then
       log "⏳ Waiting ${retry_delay}s before next attempt... ⏳"
       sleep "$retry_delay"
     fi
     ((attempt++))
   done
-  log "❌ Error: Failed to send notification '${title}' after $max_retries attempts."
+  log "      ❌ Error: Failed to send notification '${title}' after $max_retries attempts."
   return 1
 }
 
@@ -354,8 +354,8 @@ while IFS= read -r line; do
 
   # Check if this handshake is recent enough to consider the peer "connected" now
   time_since_handshake=$((current_time - handshake_timestamp))
-  friendly_duration=$(format_duration "$time_since_handshake")
-  log "   ℹ️ Time since handshake: ${friendly_duration} ago (${time_since_handshake}s total)"
+  friendly_duration_since_handshake=$(format_duration "$time_since_handshake")
+  log "   ℹ️ Time since handshake: ${friendly_duration_since_handshake} ago (${time_since_handshake}s total)"
   
   if [[ $time_since_handshake -lt $TIMEOUT_THRESHOLD ]]; then
     log "   ℹ️ Handshake is recent. Marking as currently connected."
@@ -364,8 +364,8 @@ while IFS= read -r line; do
     if [[ -z "${connected_peers[$peer]:-}" ]]; then
       log "   ✅ Peer $peer was NOT connected previously. Sending notification."
       peer_display=$(get_peer_display "$peer")
-      log "      ℹ️ Sending notification for $peer_display (Handshake - ${friendly_duration} (${time_since_handshake}s) ago)."
-      send_notification "🟢 [$VPN_NAME] Peer Connected" "👤 Peer $peer_display is now online." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
+      log "      ℹ️ Sending notification for $peer_display (Handshake - ${friendly_duration_since_handshake} (${time_since_handshake}s) ago)."
+      send_notification "🟢 [$VPN_NAME] Peer Connected" "👤 Peer $peer_display is now online. (Connected: ${friendly_duration_since_handshake} ago)." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
       # No need to update connected_peers here, save_state handles the final state
     else
         log "   ℹ️ Peer $peer WAS already connected previously. No notification needed."
@@ -375,23 +375,34 @@ done <<< "$handshake_output" # Feed the output, even if empty
 
 # Check for disconnections based on comparing previous state to current connections
 log "ℹ️ Checking for disconnections..."
-for peer in "${!connected_peers[@]}"; do # Iterate peers connected *last time*
-  # Check if a previously connected peer is NOT connected *this time*
-  if [[ -z "${current_connected_peers[$peer]:-}" ]]; then
-    # Peer was connected, but isn't now. Check how long ago its *last known* handshake was.
+if [[ ${#connected_peers[@]} -eq 0 ]]; then
+    # If the array of previously connected peers is empty, log a message.
+    log "ℹ️ No previously connected peers to check for disconnections."
+else
+  for peer in "${!connected_peers[@]}"; do # Iterate peers connected *last time*
+    log "➡️ Processing Peer: $peer"
     last_seen=${last_handshakes[$peer]:-0} # Get last handshake time from loaded state
     time_since_last_seen=$(( current_time - last_seen ))
-    peer_display=$(get_peer_display "$peer")
+    friendly_last_seen=$(format_duration "$time_since_last_seen")
+    log "   ℹ️ Last seen: ${friendly_last_seen} ago (${time_since_last_seen}s total)"
+    # Check if a previously connected peer is NOT connected *this time*
+    if [[ -z "${current_connected_peers[$peer]:-}" ]]; then
+      # Peer was connected, but isn't now. Check how long ago its *last known* handshake was.
+      peer_display=$(get_peer_display "$peer")
 
-    # We don't strictly need the TIMEOUT_THRESHOLD check here again if we trust
-    # current_connected_peers, but it adds clarity/safety. A peer missing from
-    # current_connected_peers *implies* its handshake is older than the threshold.
-    # The more robust check is simply: If it was connected before, and not now, it's disconnected.
-    log "✅ Peer $peer_display has disconnected (Last handshake seen ${time_since_last_seen}s ago)."
-    send_notification "🔴 [$VPN_NAME] Peer Disconnected" "👤 Peer $peer_display appears to be offline (Last handshake: ${time_since_last_seen}s ago)." || log "⚠️ Warning: Failed to send disconnection notification for $peer_display"
-    # The state update happens during save_state; no need to unset here
-  fi
-done
+      # We don't strictly need the TIMEOUT_THRESHOLD check here again if we trust
+      # current_connected_peers, but it adds clarity/safety. A peer missing from
+      # current_connected_peers *implies* its handshake is older than the threshold.
+      # The more robust check is simply: If it was connected before, and not now, it's disconnected.
+      log "   ✅ Peer $peer_display has disconnected (Last handshake seen ${time_since_last_seen}s ago)."
+      send_notification "🔴 [$VPN_NAME] Peer Disconnected" "👤 Peer $peer_display appears to be offline (Last seen: ${friendly_last_seen} ago)." || log "⚠️ Warning: Failed to send disconnection notification for $peer_display"
+      # The state update happens during save_state; no need to unset here
+    else
+          log "   ℹ️ Peer $peer is still connected. No notification needed."
+    fi
+  done
+fi
+
 
 # Save the current state for the next run
 if ! save_state; then
