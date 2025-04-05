@@ -1,5 +1,5 @@
 # wg-easy-sentinel
-
+[![License: MIT](https://img.shields.io/github/license/xegabriel/wg-easy-sentinel)](https://github.com/xegabriel/wg-easy-sentinel/blob/main/LICENSE) [![Latest Release](https://img.shields.io/github/v/release/xegabriel/wg-easy-sentinel)](https://github.com/xegabriel/wg-easy-sentinel/releases/latest) [![GitHub Stars](https://img.shields.io/github/stars/xegabriel/wg-easy-sentinel?style=social)](https://github.com/xegabriel/wg-easy-sentinel)
 ## 📖 Overview
 wg-easy-sentinel watches your `wg-easy` container for VPN client connection/disconnection events and sends push notifications via Pushover. It detects connection state changes by monitoring WireGuard handshake timestamps and maintaining state between runs.
 
