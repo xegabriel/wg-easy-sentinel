@@ -133,12 +133,53 @@ fetch_handshake_info() {
     log "❌ Error retrieving handshake info from container $CONTAINER_NAME. Exit code: $exit_code. Output: $output"
     return 1
   fi
+
   # Filter out empty lines or potential headers/interface lines if any exist
-  echo "$output" | grep -E '^[^\s]+\s+[^\s]+\s+[0-9]+$' || {
+  echo "$output" | grep -E '^[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[0-9]+$' || {
       log "⚠️ No valid handshake lines found in 'wg show' output."
       # Return success but empty output, which is valid (no peers or no handshakes)
       return 0
   }
+}
+
+# Format seconds into a human-readable duration string (e.g., 1d 2h 3m 4s)
+format_duration() {
+    local total_seconds=$1
+    local days hours minutes seconds result=""
+
+    # Ensure input is non-negative integer
+    if ! [[ "$total_seconds" =~ ^[0-9]+$ ]]; then
+        echo "Invalid input"
+        return 1
+    fi
+
+    # Prevent issues if somehow negative, treat as 0
+    if [[ $total_seconds -lt 0 ]]; then total_seconds=0; fi
+
+    days=$((total_seconds / 86400))
+    total_seconds=$((total_seconds % 86400))
+    hours=$((total_seconds / 3600))
+    total_seconds=$((total_seconds % 3600))
+    minutes=$((total_seconds / 60))
+    seconds=$((total_seconds % 60))
+
+    # Build the string, adding units only if they are greater than zero
+    if [[ $days -gt 0 ]]; then result+="${days}d "; fi
+    if [[ $hours -gt 0 ]]; then result+="${hours}h "; fi
+    if [[ $minutes -gt 0 ]]; then result+="${minutes}m "; fi
+
+    # Always include seconds if the total duration was less than a minute,
+    # OR if the seconds part is non-zero,
+    # OR if the entire result string is still empty (handles the 0s case).
+    if [[ $1 -lt 60 || $seconds -gt 0 || -z "$result" ]]; then
+         result+="${seconds}s"
+    fi
+
+    # Trim potential trailing space if the last unit added was not seconds
+    # and seconds was 0 (e.g., exactly 2 minutes results in "2m ")
+    result=$(echo "$result" | xargs)
+
+    echo "$result"
 }
 
 # --- State Management Functions ---
@@ -278,6 +319,16 @@ fi
 log "ℹ️ Fetching current handshake info..."
 handshake_output=$(fetch_handshake_info)
 fetch_status=$?
+
+# --- Count peers found
+peer_count=0
+# Only count if the function succeeded (status 0) and output is not empty
+if [[ $fetch_status -eq 0 && -n "$handshake_output" ]]; then
+    # Count non-empty lines in the output variable
+    peer_count=$(grep -c . <<< "$handshake_output")
+fi
+# Always log the number of peers found after filtering
+log "ℹ️ Found $peer_count peers in filtered handshake info."
 # Handle case where fetch_handshake_info succeeded but returned no data
 if [[ $fetch_status -ne 0 ]]; then
     log "❌ Error fetching handshake info. Exiting."
@@ -303,7 +354,8 @@ while IFS= read -r line; do
 
   # Check if this handshake is recent enough to consider the peer "connected" now
   time_since_handshake=$((current_time - handshake_timestamp))
-  log "   ℹ️ Time since handshake: ${time_since_handshake}s"
+  friendly_duration=$(format_duration "$time_since_handshake")
+  log "   ℹ️ Time since handshake: ${friendly_duration} ago (${time_since_handshake}s total)"
   
   if [[ $time_since_handshake -lt $TIMEOUT_THRESHOLD ]]; then
     log "   ℹ️ Handshake is recent. Marking as currently connected."
@@ -312,7 +364,7 @@ while IFS= read -r line; do
     if [[ -z "${connected_peers[$peer]:-}" ]]; then
       log "   ✅ Peer $peer was NOT connected previously. Sending notification."
       peer_display=$(get_peer_display "$peer")
-      log "      ℹ️ Senging notification for $peer_display (Handshake ${time_since_handshake}s ago)."
+      log "      ℹ️ Sending notification for $peer_display (Handshake - ${friendly_duration} (${time_since_handshake}s) ago)."
       send_notification "🟢 [$VPN_NAME] Peer Connected" "👤 Peer $peer_display is now online." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
       # No need to update connected_peers here, save_state handles the final state
     else
