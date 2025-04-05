@@ -296,20 +296,27 @@ while IFS= read -r line; do
   # Expected format from fetch_handshake_info: "interface publicKey timestamp"
   # We filtered ensures this format, so we can be less defensive here
   read -r _ peer handshake_timestamp <<< "$line" # Use _ for unused 'interface'
-
+  
+  log "➡️ Processing Peer: $peer, Handshake: $handshake_timestamp"
   # Record the latest handshake time for *all* peers seen in this run
   current_handshakes["$peer"]=$handshake_timestamp
 
   # Check if this handshake is recent enough to consider the peer "connected" now
   time_since_handshake=$((current_time - handshake_timestamp))
+  log "   ℹ️ Time since handshake: ${time_since_handshake}s"
+  
   if [[ $time_since_handshake -lt $TIMEOUT_THRESHOLD ]]; then
+    log "   ℹ️ Handshake is recent. Marking as currently connected."
     current_connected_peers["$peer"]=1 # Mark as connected in *this* run
     # Check if it was NOT connected in the *previous* run (new connection)
     if [[ -z "${connected_peers[$peer]:-}" ]]; then
+      log "   ✅ Peer $peer was NOT connected previously. Sending notification."
       peer_display=$(get_peer_display "$peer")
-      log "✅ Peer $peer_display is now connected (Handshake ${time_since_handshake}s ago)."
+      log "      ℹ️ Senging notification for $peer_display (Handshake ${time_since_handshake}s ago)."
       send_notification "🟢 [$VPN_NAME] Peer Connected" "👤 Peer $peer_display is now online." || log "⚠️ Warning: Failed to send connection notification for $peer_display"
       # No need to update connected_peers here, save_state handles the final state
+    else
+        log "   ℹ️ Peer $peer WAS already connected previously. No notification needed."
     fi
   fi
 done <<< "$handshake_output" # Feed the output, even if empty
